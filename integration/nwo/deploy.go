@@ -84,31 +84,6 @@ func DeployChaincode(n *Network, channel string, orderer *Orderer, chaincode Cha
 	}
 }
 
-// DeployChaincodeWithoutInitialization is a helper that will install chaincode to all peers that
-// are connected to the specified channel, approve the chaincode on one of the
-// peers of each organization in the network, commit the chaincode definition
-// on the channel using one of the peers, and wait for the chaincode commit to
-// complete on all of the peers.
-// This method does not invoke initialization of chaincode. This is useful for chaincode as extenal service
-// where package code is required for stating the external chaincode service.
-func DeployChaincodeWithoutInitialization(n *Network, channel string, orderer *Orderer, chaincode Chaincode, peers ...*Peer) {
-	if len(peers) == 0 {
-		peers = n.PeersWithChannel(channel)
-	}
-	if len(peers) == 0 {
-		return
-	}
-
-	PackageAndInstallChaincode(n, chaincode, peers...)
-
-	// approve for each org
-	ApproveChaincodeForMyOrg(n, channel, orderer, chaincode, peers...)
-
-	// commit definition
-	CheckCommitReadinessUntilReady(n, channel, chaincode, n.PeerOrgs(), peers...)
-	CommitChaincode(n, channel, orderer, chaincode, peers[0], peers...)
-}
-
 // DeployChaincodeLegacy is a helper that will install chaincode to all peers
 // that are connected to the specified channel, instantiate the chaincode on
 // one of the peers, and wait for the instantiation to complete on all of the
