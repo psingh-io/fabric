@@ -14,7 +14,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
-	"testing"
 	"time"
 
 	"github.com/hyperledger/fabric/common/crypto/tlsgen"
@@ -26,11 +25,6 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 )
-
-func TestChaincodeAsExternalService(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Chaincode As External Service Suite")
-}
 
 var _ = Describe("ChaincodeAsExternalService", func() {
 	var (
