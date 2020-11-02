@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/hyperledger/fabric/internal/cryptogen/ca"
 	"github.com/hyperledger/fabric/internal/cryptogen/csp"
@@ -63,6 +64,8 @@ func TestLoadCertificateECDSA(t *testing.T) {
 		testOrganizationalUnit,
 		testStreetAddress,
 		testPostalCode,
+		365*15*24*time.Hour,
+		365*24*time.Hour,
 	)
 	assert.NoError(t, err, "Error generating CA")
 
@@ -136,6 +139,8 @@ func TestNewCA(t *testing.T) {
 		testOrganizationalUnit,
 		testStreetAddress,
 		testPostalCode,
+		365*15*24*time.Hour,
+		365*24*time.Hour,
 	)
 	assert.NoError(t, err, "Error generating CA")
 	assert.NotNil(t, rootCA, "Failed to return CA")
@@ -179,6 +184,8 @@ func TestGenerateSignCertificate(t *testing.T) {
 	assert.NoError(t, err, "Failed to generate signed certificate")
 
 	// create our CA
+	caCertExpiry := 3650 * 24 * time.Hour
+	signedCertExpiry := 365 * time.Hour
 	caDir := filepath.Join(testDir, "ca")
 	rootCA, err := ca.NewCA(
 		caDir,
@@ -190,6 +197,8 @@ func TestGenerateSignCertificate(t *testing.T) {
 		testOrganizationalUnit,
 		testStreetAddress,
 		testPostalCode,
+		caCertExpiry,
+		signedCertExpiry,
 	)
 	assert.NoError(t, err, "Error generating CA")
 
@@ -207,6 +216,7 @@ func TestGenerateSignCertificate(t *testing.T) {
 	assert.Equal(t, x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
 		cert.KeyUsage)
 	assert.Contains(t, cert.ExtKeyUsage, x509.ExtKeyUsageAny)
+	validateCertExpiry(t, cert, signedCertExpiry)
 
 	cert, err = rootCA.SignCertificate(
 		certDir,
@@ -227,6 +237,7 @@ func TestGenerateSignCertificate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, cert.Subject.OrganizationalUnit, ous[0])
 	assert.Contains(t, cert.Subject.OrganizationalUnit, ous[1])
+	validateCertExpiry(t, cert, signedCertExpiry)
 
 	// make sure sans are correctly set
 	sans := []string{testName2, testName3, testIP}
@@ -263,4 +274,12 @@ func checkForFile(file string) bool {
 		return false
 	}
 	return true
+}
+
+func validateCertExpiry(t *testing.T, cert *x509.Certificate, expiry time.Duration) {
+	notBefore := time.Now().Round(time.Minute).Add(-5 * time.Minute).UTC()
+	notAfter := notBefore.Add(expiry)
+
+	assert.WithinDuration(t, notBefore, cert.NotBefore, 1*time.Minute, "Certificate NotBefore not in expected range")
+	assert.WithinDuration(t, notAfter, cert.NotAfter, 1*time.Minute, "Certificate NotAfter not in expected range")
 }
